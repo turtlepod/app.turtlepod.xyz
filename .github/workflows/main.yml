@@ -1,0 +1,19 @@
+on:
+  push:
+    branches: [ main ]
+name: Deploy website on push
+jobs:
+  web-deploy:
+    name: 🚀 to Production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: contention/rsync-deployments@v2.0.0
+        with:
+          FLAGS: -avzr --delete
+          EXCLUDES: --exclude .htaccess --exclude /uploads/ --exclude .git --exclude .github
+          USER: ${{ secrets.SSH_USER }}
+          HOST: ${{ secrets.SSH_HOST }}
+          LOCALPATH: /
+          REMOTEPATH: ${{ secrets.SSH_DIR }}
+          DEPLOY_KEY: ${{ secrets.SSH_KEY }}
