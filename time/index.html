@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Calculator</title>
+    <!-- Favicon: Clock emoji -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏰</text></svg>">
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the Inter font and rounded corners */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top for better content flow */
+            min-height: 100vh;
+            padding: 2rem 1rem; /* Padding for mobile and desktop */
+            box-sizing: border-box;
+        }
+        input, button, table {
+            border-radius: 0.5rem; /* Apply rounded corners */
+        }
+        /* Specific input styling for better appearance */
+        input[type="time"], input[type="number"] {
+            -webkit-appearance: none; /* Remove default styling for better cross-browser consistency */
+            -moz-appearance: none;
+            appearance: none;
+            background-color: #ffffff;
+            border: 1px solid #d1d5db; /* Light gray border */
+            padding: 0.5rem 0.75rem;
+            font-size: 1rem;
+            line-height: 1.5rem;
+        }
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.5); /* Adjust icon color if needed */
+        }
+        /* Table stripe effect for better readability */
+        #scheduleTable tbody tr:nth-child(even) {
+            background-color: #f9fafb; /* Lighter background for even rows */
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container max-w-lg mx-auto bg-white p-6 md:p-8 shadow-lg rounded-xl">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Schedule Calculator</h1>
+
+        <div class="flex flex-col md:flex-row gap-4 mb-8">
+            <div class="flex-1">
+                <label for="startTime" class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                <!-- Added step="1800" for 30-minute increments (1800 seconds) -->
+                <input type="time" id="startTime" value="09:00" step="1800"
+                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900 p-2.5">
+            </div>
+            <div class="flex-1">
+                <label for="startDuration" class="block text-sm font-medium text-gray-700 mb-1">Initial Duration</label>
+                <input type="number" id="startDuration" value="3" placeholder="e.g., 3, 5.5" step="0.5"
+                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900 p-2.5">
+            </div>
+        </div>
+
+        <!-- Current Time Display -->
+        <div class="flex items-center justify-center mb-8 bg-blue-50 p-4 rounded-lg shadow-sm">
+            <span class="text-4xl mr-3">⏰</span> <!-- Clock emoji icon -->
+            <p id="currentTimeWIB" class="text-3xl font-bold text-blue-800"></p>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table id="scheduleTable" class="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Time</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Duration</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <!-- Table rows will be inserted here by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Get references to the input elements and the table body
+        const startTimeInput = document.getElementById('startTime');
+        const startDurationInput = document.getElementById('startDuration');
+        const scheduleTableBody = document.querySelector('#scheduleTable tbody');
+        const currentTimeWIBElement = document.getElementById('currentTimeWIB');
+
+        // Keys for local storage
+        const LS_START_TIME_KEY = 'scheduleCalculatorStartTime';
+        const LS_START_DURATION_KEY = 'scheduleCalculatorStartDuration';
+
+        /**
+         * Parses the initial duration from the numeric input field.
+         * @returns {number} The duration in hours (float).
+         */
+        function getInitialDuration() {
+            // parseFloat will handle empty string as NaN, so we default to 0
+            return parseFloat(startDurationInput.value) || 0;
+        }
+
+        /**
+         * Formats a total number of hours into a simple numeric string.
+         * @param {number} totalHours - The total duration in hours (float).
+         * @returns {string} The formatted duration string.
+         */
+        function formatDuration(totalHours) {
+            // Ensure it's formatted to one decimal if it's a .5 increment, otherwise simple float
+            if (totalHours % 1 === 0) {
+                return `${totalHours}`;
+            } else if (totalHours % 0.5 === 0) {
+                return `${totalHours.toFixed(1)}`; // Format to one decimal place for .5 increments
+            } else {
+                return `${totalHours}`; // Keep original float if not .5
+            }
+        }
+
+        /**
+         * Formats a Date object into a readable time string (e.g., "9:00 AM").
+         * @param {Date} date - The Date object to format.
+         * @returns {string} The formatted time string.
+         */
+        function formatTime(date) {
+            let hours = date.getHours();
+            let minutes = date.getMinutes();
+            const ampm = hours >= 12 ? 'pm' : 'am';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // The hour '0' (midnight) should be '12'
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            return `${hours}:${minutes}${ampm}`;
+        }
+
+        /**
+         * Updates the schedule table based on current input values.
+         */
+        function updateTable() {
+            // Clear existing table rows
+            scheduleTableBody.innerHTML = '';
+
+            // Get start time from input.
+            const startTimeValue = startTimeInput.value;
+            const initialDate = new Date(); // Create a Date object with current date
+            if (startTimeValue) {
+                const [hours, minutes] = startTimeValue.split(':').map(Number);
+                initialDate.setHours(hours);
+                initialDate.setMinutes(minutes);
+                initialDate.setSeconds(0);
+                initialDate.setMilliseconds(0);
+            } else {
+                // Default to current time if no start time is set
+                initialDate.setSeconds(0);
+                initialDate.setMilliseconds(0);
+            }
+
+            // Get the initial duration
+            const initialDurationHours = getInitialDuration();
+
+            // Loop to generate 16 rows
+            for (let i = 0; i < 16; i++) {
+                // Calculate current time for the row
+                const currentTime = new Date(initialDate.getTime()); // Clone the initial date
+                currentTime.setMinutes(initialDate.getMinutes() + (i * 30)); // Add 30 minutes for each row
+
+                // Calculate cumulative duration for the row
+                const elapsedMinutes = i * 30;
+                const cumulativeDurationHours = initialDurationHours + (elapsedMinutes / 60);
+
+                // Create a new table row
+                const row = document.createElement('tr');
+                row.classList.add('hover:bg-gray-50'); /* Add hover effect */
+
+                // Create and append 'Time' cell
+                const timeCell = document.createElement('td');
+                timeCell.classList.add('px-4', 'py-3', 'whitespace-nowrap', 'text-sm', 'text-gray-800');
+                timeCell.textContent = formatTime(currentTime);
+                row.appendChild(timeCell);
+
+                // Create and append 'Duration' cell
+                const durationCell = document.createElement('td');
+                durationCell.classList.add('px-4', 'py-3', 'whitespace-nowrap', 'text-sm', 'text-gray-600');
+                durationCell.textContent = formatDuration(cumulativeDurationHours);
+                row.appendChild(durationCell);
+
+                // Append the row to the table body
+                scheduleTableBody.appendChild(row);
+            }
+            // The applyCurrentTimeHighlight() call is removed here.
+        }
+
+        /**
+         * Displays the current time in WIB (Western Indonesia Time, GMT+7).
+         */
+        function displayCurrentTimeWIB() {
+            const now = new Date();
+            // Options for formatting the time to WIB (GMT+7)
+            const options = {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true, // Use 12-hour format with AM/PM
+                timeZone: 'Asia/Jakarta' // WIB (Western Indonesia Time)
+            };
+            const wibTime = now.toLocaleTimeString('en-US', options); // Using 'en-US' for consistent AM/PM
+            currentTimeWIBElement.textContent = `${wibTime} WIB`;
+        }
+
+        /**
+         * Saves the current input values to local storage.
+         */
+        function saveSettings() {
+            localStorage.setItem(LS_START_TIME_KEY, startTimeInput.value);
+            localStorage.setItem(LS_START_DURATION_KEY, startDurationInput.value);
+        }
+
+        /**
+         * Loads saved input values from local storage.
+         */
+        function loadSettings() {
+            const savedStartTime = localStorage.getItem(LS_START_TIME_KEY);
+            const savedStartDuration = localStorage.getItem(LS_START_DURATION_KEY);
+
+            if (savedStartTime) {
+                startTimeInput.value = savedStartTime;
+            }
+            if (savedStartDuration) {
+                startDurationInput.value = savedStartDuration;
+            }
+        }
+
+        // Add event listeners to update the table on input change
+        // And save settings
+        startTimeInput.addEventListener('input', () => {
+            updateTable();
+            saveSettings();
+        });
+        startDurationInput.addEventListener('input', () => {
+            updateTable();
+            saveSettings();
+        });
+
+        // Initial setup and periodic updates
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings(); // Load settings when the page loads
+            updateTable(); // Generate table
+            displayCurrentTimeWIB(); // Display current time immediately
+
+            // Update current time every second
+            setInterval(displayCurrentTimeWIB, 1000);
+        });
+    </script>
+</body>
+</html>
