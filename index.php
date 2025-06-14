@@ -17,7 +17,6 @@
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
     <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md md:max-w-lg lg:max-w-xl text-center">
         <h1 class="text-4xl font-bold text-gray-800 mb-4 rounded-md">app.turlepod.xyz</h1>
-        <p class="text-lg text-gray-600 mb-8">Select an application to explore:</p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <?php
