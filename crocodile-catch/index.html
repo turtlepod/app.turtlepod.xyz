@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crocodile Catch</title>
+    <!-- Tailwind CSS CDN for basic styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js CDN for sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+        body {
+            font-family: "Inter", sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            overflow: hidden; /* Prevent scrollbars */
+        }
+        canvas {
+            background-color: #add8e6; /* Light blue water */
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            display: block; /* Remove extra space below canvas */
+            width: 90%; /* Responsive width */
+            max-width: 800px; /* Max width for desktop */
+            height: 450px; /* Fixed height for aspect ratio */
+        }
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+            position: relative; /* For absolute positioning of winning screen */
+        }
+        .score-board {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 800px;
+            padding: 10px 20px;
+            background-color: #4CAF50; /* Green for score */
+            color: white;
+            border-radius: 10px;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .message-box {
+            min-height: 40px; /* Ensure space for messages */
+            font-size: 1.1rem;
+            color: #333;
+            text-align: center;
+        }
+        .winning-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 128, 0, 0.9); /* Semi-transparent green overlay */
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 3rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 10; /* Ensure it's on top */
+            display: none; /* Hidden by default */
+        }
+        .winning-screen p {
+            margin-bottom: 20px;
+        }
+        .winning-screen button {
+            background-color: #FFD700; /* Gold color */
+            color: #333;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
+        }
+        .winning-screen button:hover {
+            background-color: #e6c200; /* Darker gold on hover */
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen">
+    <div class="game-container">
+        <div class="score-board">
+            <span>Score: <span id="score">0</span></span>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="messageBox" class="message-box">Press SPACEBAR to catch food!</div>
+
+        <div id="winningScreen" class="winning-screen">
+            <p>🥳 YOU WIN! 🥳</p>
+            <button id="playAgainButton">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Get canvas and its 2D rendering context
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+        const messageBox = document.getElementById('messageBox');
+        const winningScreen = document.getElementById('winningScreen');
+        const playAgainButton = document.getElementById('playAgainButton');
+
+        // Game state variables
+        let score = 0;
+        let crocodileY = canvas.height / 2; // Crocodile's vertical position (fixed X)
+        const crocodileWidth = 80;
+        const crocodileHeight = 60;
+        const crocodileX = 50; // Fixed X position for crocodile on the left
+
+        // Crocodile emojis for different states
+        const crocodileEmojiDefault = '🐊'; // Default state
+        const crocodileEmojiCatch = '😮'; // Catching state (open mouth, or just a different emoji)
+        let currentCrocodileEmoji = crocodileEmojiDefault; // Currently displayed crocodile emoji
+        let spacebarPressed = false; // New variable to track spacebar state
+        let gameWon = false; // New variable to track winning state
+
+        let foodX;
+        let foodY;
+        let foodActive = false;
+        let foodSpeed = 3; // Speed at which food moves
+        let foodEmoji = ''; // Current food emoji
+        const foodEmojis = ['🍎', '🍔', '🍕', '🍓', '🥕', '🍩', '🧀']; // Array of food emojis
+
+        const catchRange = 50; // Distance within which the crocodile can catch food
+        let lastFoodLaunchTime = 0;
+        const minLaunchInterval = 1500; // Minimum time between food launches (ms)
+        const maxLaunchInterval = 3000; // Maximum time between food launches (ms)
+        let nextFoodLaunchDelay = 0; // Random delay for next food launch
+
+        // Tone.js setup for sounds
+        const synth = new Tone.Synth().toDestination(); // For catch sound
+        // Define winning melody as a sequence
+        const winningMelody = new Tone.Sequence((time, note) => {
+            synth.triggerAttackRelease(note, '8n', time);
+        }, ['C5', 'E5', 'G5', 'C6'], '4n'); // Removed .start(0) here to control start explicitly
+        winningMelody.loop = false; // Play once
+        Tone.Transport.bpm.value = 120; // Set BPM for melody
+
+        // Function to update canvas size based on its actual CSS size
+        function resizeCanvas() {
+            // Get the computed CSS dimensions of the canvas
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            // Recalculate crocodile position based on new canvas height
+            crocodileY = canvas.height / 2;
+        }
+
+        // Initialize game variables and set up canvas
+        function initGame() {
+            score = 0;
+            scoreDisplay.textContent = score;
+            foodActive = false;
+            gameWon = false;
+            messageBox.textContent = 'Press SPACEBAR to catch food!';
+
+            // Hide winning screen and show canvas/game elements
+            winningScreen.style.display = 'none';
+            canvas.style.display = 'block';
+            scoreDisplay.parentElement.style.display = 'flex'; // Show score board
+            messageBox.style.display = 'block'; // Show message box
+
+            resizeCanvas(); // Initial resize
+            window.addEventListener('resize', resizeCanvas); // Listen for window resize
+            requestNewFoodLaunch(); // Schedule first food launch
+            
+            // Stop Tone.js transport and winning melody to reset for new game
+            Tone.Transport.stop(); 
+            winningMelody.stop(); 
+            gameLoop(); // Start the game loop
+        }
+
+        // Draw the crocodile (using emoji or simple shape)
+        function drawCrocodile() {
+            ctx.font = `${crocodileHeight}px sans-serif`;
+            ctx.fillText(currentCrocodileEmoji, crocodileX, crocodileY + crocodileHeight / 3); // Use current emoji
+        }
+
+        // Draw the food item
+        function drawFood() {
+            if (foodActive) {
+                ctx.font = '40px sans-serif';
+                ctx.fillText(foodEmoji, foodX, foodY);
+            }
+        }
+
+        // Function to launch new food
+        function launchNewFood() {
+            if (gameWon) return; // Don't launch food if game is won
+
+            foodActive = true;
+            foodX = canvas.width; // Start from right edge
+            // Set foodY to be aligned with the crocodile's Y position
+            foodY = crocodileY + (crocodileHeight / 2) - 20; // Adjust for emoji vertical centering
+            foodEmoji = foodEmojis[Math.floor(Math.random() * foodEmojis.length)]; // Random food type
+            console.log('Food launched:', foodEmoji, 'at X:', foodX, 'Y:', foodY); // Debug: log food launch
+        }
+
+        // Schedule the next food launch
+        function requestNewFoodLaunch() {
+            if (gameWon) return; // Don't schedule if game is won
+
+            nextFoodLaunchDelay = Math.random() * (maxLaunchInterval - minLaunchInterval) + minLaunchInterval;
+            lastFoodLaunchTime = performance.now(); // Record current time
+            foodActive = false; // Deactivate current food until new one launches
+            console.log('Scheduled next food launch in', nextFoodLaunchDelay.toFixed(0), 'ms'); // Debug: log next launch
+        }
+
+        // Check for collision and handle catch (now called continuously in update)
+        function handleCollisionAndCatch() {
+            if (gameWon) return; // Don't check for catch if game is won
+
+            if (foodActive && spacebarPressed) { // Only check if food is active AND spacebar is pressed
+                // Calculate horizontal distance between crocodile and food center
+                const distCrocodileFoodX = Math.abs(foodX - (crocodileX + crocodileWidth / 2));
+
+                // Check if food is within the horizontal and vertical catch range
+                const isWithinHorizontalRange = distCrocodileFoodX < catchRange;
+                const isWithinVerticalRange = Math.abs(foodY - (crocodileY + crocodileHeight / 2)) < catchRange / 2;
+
+                if (isWithinHorizontalRange && isWithinVerticalRange) {
+                    score++;
+                    scoreDisplay.textContent = score;
+                    messageBox.textContent = 'Caught! Delicious!';
+                    synth.triggerAttackRelease('C5', '8n'); // Play winning sound (C5 note for 1/8th note duration)
+                    requestNewFoodLaunch(); // Schedule a new launch
+                    console.log('Caught! Score:', score); // Debug: log catch
+
+                    // Check for win condition
+                    if (score >= 10) {
+                        gameWon = true;
+                        showWinningScreen();
+                    }
+                }
+            }
+        }
+
+        // Function to show the winning screen
+        function showWinningScreen() {
+            // Hide game elements
+            canvas.style.display = 'none';
+            scoreDisplay.parentElement.style.display = 'none'; // Hide score board
+            messageBox.style.display = 'none'; // Hide message box
+
+            // Show winning screen
+            winningScreen.style.display = 'flex';
+            
+            // Stop and then start the winning melody and transport
+            winningMelody.stop(); // Stop the melody to reset its position
+            Tone.Transport.stop(); // Stop the transport to ensure a clean start
+            Tone.Transport.start(); // Start Tone.js transport for melody
+            winningMelody.start(); // Play the winning melody
+        }
+
+        // Update game state (movement, collision, new food)
+        function update(currentTime) {
+            if (gameWon) return; // If game is won, stop updating game logic
+
+            // Check if it's time to launch new food
+            if (!foodActive && (currentTime - lastFoodLaunchTime > nextFoodLaunchDelay)) {
+                launchNewFood();
+            }
+
+            if (foodActive) {
+                foodX -= foodSpeed; // Move food to the left
+
+                // If food goes off-screen, reset it
+                if (foodX < -50) {
+                    messageBox.textContent = 'Missed! Wait for next food.';
+                    requestNewFoodLaunch(); // Schedule a new launch
+                    console.log('Food went off-screen. Missed!'); // Debug: log miss
+                }
+            }
+
+            // Update crocodile emoji based on spacebar state
+            currentCrocodileEmoji = spacebarPressed ? crocodileEmojiCatch : crocodileEmojiDefault;
+
+            // Continuously check for collision if spacebar is pressed
+            handleCollisionAndCatch();
+        }
+
+        // Game loop
+        function gameLoop(currentTime) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+
+            update(currentTime); // Update game state
+            drawCrocodile(); // Draw crocodile
+            drawFood(); // Draw food
+
+            // Only continue loop if game is not won
+            if (!gameWon) {
+                requestAnimationFrame(gameLoop); // Request next frame
+            }
+        }
+
+        // Event listener for spacebar down
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                event.preventDefault(); // Prevent scrolling the page
+                spacebarPressed = true; // Set flag to true as spacebar is held down
+                console.log('Spacebar keydown event detected. spacebarPressed:', spacebarPressed); // Debug: confirm event detection
+            }
+        });
+
+        // Event listener for spacebar up
+        document.addEventListener('keyup', (event) => {
+            if (event.code === 'Space') {
+                event.preventDefault(); // Prevent scrolling the page
+                spacebarPressed = false; // Set flag to false when spacebar is released
+                console.log('Spacebar keyup event detected. spacebarPressed:', spacebarPressed); // Debug: confirm event detection
+            }
+        });
+
+        // Event listener for play again button
+        playAgainButton.addEventListener('click', () => {
+            initGame(); // Restart the game
+        });
+
+        // Start the game when the window loads
+        window.onload = function() {
+            initGame();
+        };
+    </script>
+</body>
+</html>
