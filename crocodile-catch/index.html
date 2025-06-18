@@ -125,6 +125,9 @@
         const crocodileWidth = 80;
         const crocodileHeight = 60;
         const crocodileX = 50; // Fixed X position for crocodile on the left
+        const crocodileSpeedY = 5; // Speed for vertical movement
+        let moveUp = false;
+        let moveDown = false;
 
         // Crocodile emojis for different states
         const crocodileEmojiDefault = '🐊'; // Default state
@@ -151,7 +154,7 @@
         // Define winning melody as a sequence
         const winningMelody = new Tone.Sequence((time, note) => {
             synth.triggerAttackRelease(note, '8n', time);
-        }, ['C5', 'E5', 'G5', 'C6'], '4n'); // Removed .start(0) here to control start explicitly
+        }, ['C5', 'E5', 'G5', 'C6'], '4n');
         winningMelody.loop = false; // Play once
         Tone.Transport.bpm.value = 120; // Set BPM for melody
 
@@ -173,6 +176,8 @@
             foodActive = false;
             gameWon = false;
             messageBox.textContent = 'Press SPACEBAR to catch food!';
+            moveUp = false; // Reset movement states
+            moveDown = false;
 
             // Hide winning screen and show canvas/game elements
             winningScreen.style.display = 'none';
@@ -265,16 +270,30 @@
             // Show winning screen
             winningScreen.style.display = 'flex';
             
-            // Stop and then start the winning melody and transport
-            winningMelody.stop(); // Stop the melody to reset its position
-            Tone.Transport.stop(); // Stop the transport to ensure a clean start
-            Tone.Transport.start(); // Start Tone.js transport for melody
-            winningMelody.start(); // Play the winning melody
+            // Stop Tone.js transport and winning melody to ensure a clean reset
+            winningMelody.stop(); 
+            Tone.Transport.stop(); 
+
+            // Start Tone.js transport and the melody
+            Tone.Transport.start(); 
+            winningMelody.start(Tone.Transport.now()); // Start melody at the current transport time
         }
 
         // Update game state (movement, collision, new food)
         function update(currentTime) {
             if (gameWon) return; // If game is won, stop updating game logic
+
+            // Update crocodile's vertical position based on arrow keys
+            if (moveUp) {
+                crocodileY -= crocodileSpeedY;
+            }
+            if (moveDown) {
+                crocodileY += crocodileSpeedY;
+            }
+
+            // Keep crocodile within canvas bounds vertically
+            crocodileY = Math.max(0, Math.min(canvas.height - crocodileHeight, crocodileY));
+
 
             // Check if it's time to launch new food
             if (!foodActive && (currentTime - lastFoodLaunchTime > nextFoodLaunchDelay)) {
@@ -319,6 +338,10 @@
                 event.preventDefault(); // Prevent scrolling the page
                 spacebarPressed = true; // Set flag to true as spacebar is held down
                 console.log('Spacebar keydown event detected. spacebarPressed:', spacebarPressed); // Debug: confirm event detection
+            } else if (event.code === 'ArrowUp') {
+                moveUp = true;
+            } else if (event.code === 'ArrowDown') {
+                moveDown = true;
             }
         });
 
@@ -328,11 +351,19 @@
                 event.preventDefault(); // Prevent scrolling the page
                 spacebarPressed = false; // Set flag to false when spacebar is released
                 console.log('Spacebar keyup event detected. spacebarPressed:', spacebarPressed); // Debug: confirm event detection
+            } else if (event.code === 'ArrowUp') {
+                moveUp = false;
+            } else if (event.code === 'ArrowDown') {
+                moveDown = false;
             }
         });
 
         // Event listener for play again button
         playAgainButton.addEventListener('click', () => {
+            // Resume the Tone.js context if it's suspended, for mobile browsers
+            if (Tone.context.state !== 'running') {
+                Tone.start();
+            }
             initGame(); // Restart the game
         });
 
