@@ -53,18 +53,29 @@ async function rewriteTextWithAI(text, tabId) {
     console.log('rewriteTextWithAI called with text length:', text.length);
     console.log('Tab ID:', tabId);
 
-    chrome.storage.sync.get(['geminiApiKey', 'aiDirection'], async (data) => {
-        console.log('Storage data retrieved:', { hasApiKey: !!data.geminiApiKey, hasDirection: !!data.aiDirection });
+    chrome.storage.sync.get(['aiProvider', 'geminiApiKey', 'chatgptApiKey', 'aiDirection'], async (data) => {
+        console.log('Storage data retrieved:', {
+            provider: data.aiProvider,
+            hasGeminiKey: !!data.geminiApiKey,
+            hasChatGptKey: !!data.chatgptApiKey,
+            hasDirection: !!data.aiDirection
+        });
 
-        const apiKey = data.geminiApiKey;
+        const aiProvider = data.aiProvider || 'gemini';
+        const geminiApiKey = data.geminiApiKey;
+        const chatgptApiKey = data.chatgptApiKey;
         const aiDirection = data.aiDirection;
 
+        // Get the appropriate API key for the selected provider
+        const apiKey = aiProvider === 'gemini' ? geminiApiKey : chatgptApiKey;
+        const providerName = aiProvider === 'gemini' ? 'Gemini' : 'ChatGPT';
+
         if (!apiKey) {
-            console.error('Gemini API Key not found. Please set it in the extension popup.');
+            console.error(`${providerName} API Key not found. Please set it in the extension popup.`);
             // Send a message to the content script to notify the user
             chrome.tabs.sendMessage(tabId, {
                 action: 'displayMessage',
-                message: 'Gemini API Key not found. Please set it in the extension popup.'
+                message: `${providerName} API Key not found. Please set it in the extension popup.`
             });
             return;
         }
@@ -72,57 +83,95 @@ async function rewriteTextWithAI(text, tabId) {
         // Build the prompt based on whether AI direction is provided
         let prompt;
         if (aiDirection && aiDirection.trim()) {
-            prompt = `Rewrite the following text according to these instructions: "${aiDirection.trim()}"\n\nText to rewrite:\n"${text}"`;
+            prompt = `Rewrite the following text according to these instructions: "${aiDirection.trim()}"\n\nText to rewrite:\n"${text}"\n\nOnly respond with the results text.`;
         } else {
-            prompt = `Rewrite the following text to make it more clear, concise, and engaging:\n\n"${text}"`;
+            prompt = `Rewrite the following text to make it more clear, concise, and engaging:\n\n"${text}"\n\nOnly respond with the results text.`;
         }
 
         console.log('Using prompt:', prompt);
 
         try {
-            let chatHistory = [];
-            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-            const payload = { contents: chatHistory };
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            let rewrittenText;
 
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            if (aiProvider === 'gemini') {
+                // Use Gemini API
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`API error: ${response.status} - ${errorData.error.message || response.statusText}`);
-            }
-
-            const result = await response.json();
-
-            if (result.candidates && result.candidates.length > 0 &&
-                result.candidates[0].content && result.candidates[0].content.parts &&
-                result.candidates[0].content.parts.length > 0) {
-                const rewrittenText = result.candidates[0].content.parts[0].text;
-                console.log('API response successful, sending rewritten text to content script');
-                console.log('Rewritten text length:', rewrittenText.length);
-
-                // Send the rewritten text back to the content script to display in modal
-                chrome.tabs.sendMessage(tabId, {
-                    action: 'displayRewrittenText',
-                    originalText: text,
-                    rewrittenText: rewrittenText
-                }, (response) => {
-                    console.log('Response from displayRewrittenText:', response);
-                    if (chrome.runtime.lastError) {
-                        console.error('Error sending displayRewrittenText:', chrome.runtime.lastError);
-                    }
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Gemini API error: ${response.status} - ${errorData.error.message || response.statusText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    rewrittenText = result.candidates[0].content.parts[0].text;
+                } else {
+                    throw new Error('Unexpected Gemini API response structure');
+                }
             } else {
-                console.error('Unexpected API response structure:', result);
-                chrome.tabs.sendMessage(tabId, {
-                    action: 'displayMessage',
-                    message: 'Failed to rewrite text: Unexpected API response.'
+                // Use ChatGPT API
+                const payload = {
+                    model: "gpt-3.5-turbo",
+                    messages: [
+                        {
+                            role: "user",
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: 1000,
+                    temperature: 0.7
+                };
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify(payload)
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`ChatGPT API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.choices && result.choices.length > 0 &&
+                    result.choices[0].message && result.choices[0].message.content) {
+                    rewrittenText = result.choices[0].message.content;
+                } else {
+                    throw new Error('Unexpected ChatGPT API response structure');
+                }
             }
+
+            console.log('API response successful, sending rewritten text to content script');
+            console.log('Rewritten text length:', rewrittenText.length);
+
+            // Send the rewritten text back to the content script to display in modal
+            chrome.tabs.sendMessage(tabId, {
+                action: 'displayRewrittenText',
+                originalText: text,
+                rewrittenText: rewrittenText
+            }, (response) => {
+                console.log('Response from displayRewrittenText:', response);
+                if (chrome.runtime.lastError) {
+                    console.error('Error sending displayRewrittenText:', chrome.runtime.lastError);
+                }
+            });
         } catch (error) {
             console.error('Error rewriting text with AI:', error);
             chrome.tabs.sendMessage(tabId, {

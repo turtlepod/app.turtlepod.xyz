@@ -1,6 +1,6 @@
 # AI Rewriter Extension
 
-A Chrome extension that uses Google's Gemini AI to rewrite selected text or textarea content.
+A Chrome extension that uses Google's Gemini AI or OpenAI's ChatGPT to rewrite selected text or textarea content.
 
 ## Installation
 
@@ -13,8 +13,11 @@ A Chrome extension that uses Google's Gemini AI to rewrite selected text or text
 ## Setup
 
 1. Click the extension icon to open the popup
-2. Enter your Gemini API key (get one from [Google AI Studio](https://makersuite.google.com/app/apikey))
-3. Click "Save API Key"
+2. Choose your preferred AI provider (Google Gemini or OpenAI ChatGPT)
+3. Enter your API key:
+   - For Gemini: Get one from [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - For ChatGPT: Get one from [OpenAI Platform](https://platform.openai.com/api-keys)
+4. Click "Save Settings"
 
 ## Usage
 
@@ -37,7 +40,7 @@ If the popup doesn't open or work properly:
 ### Common Issues
 
 - **"Chrome storage API not available"**: Reload the extension
-- **"API Key not found"**: Make sure you've saved your Gemini API key in the popup
+- **"API Key not found"**: Make sure you've saved your API key for the selected provider in the popup
 - **Context menu not appearing**: Make sure you have text selected or are focused on a text input
 
 ## Files
