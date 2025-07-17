@@ -83,9 +83,9 @@ async function rewriteTextWithAI(text, tabId) {
         // Build the prompt based on whether AI direction is provided
         let prompt;
         if (aiDirection && aiDirection.trim()) {
-            prompt = `Rewrite the following text according to these instructions: "${aiDirection.trim()}"\n\nText to rewrite:\n"${text}"\n\nOnly respond with the results text.`;
+            prompt = `Rewrite the following text according to these instructions: "${aiDirection.trim()}"\n\nText to rewrite:\n"${text}"\n\nOnly respond with the results text. Do not use quotes around the rewritten text.`;
         } else {
-            prompt = `Rewrite the following text to make it more clear, concise, and engaging:\n\n"${text}"\n\nOnly respond with the results text.`;
+            prompt = `Rewrite the following text to make it more clear, concise, and engaging:\n\n"${text}"\n\nOnly respond with the results text. Do not use quotes around the rewritten text.`;
         }
 
         console.log('Using prompt:', prompt);

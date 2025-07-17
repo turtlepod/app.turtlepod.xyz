@@ -112,13 +112,13 @@ function createModal() {
         <div style="margin-bottom: 16px; flex-grow: 1; overflow-y: auto;">
             <p style="font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 4px;">Original Text:</p>
             <div id="originalTextDisplay" style="background-color: #f3f4f6; padding: 12px; border-radius: 6px; color: #1e293b; font-size: 14px; margin-bottom: 12px; border: 1px solid #d1d5db; white-space: pre-wrap;"></div>
-            <p style="font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 4px;">Rewritten Text:</p>
+            <p style="font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 4px;">Rewritten Text: <span id="copy-notice" style="color: #059669; font-size: 12px; font-weight: normal; margin-left: 8px; opacity: 0;"></span></p>
             <textarea id="rewrittenTextDisplay" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; color: #1e293b; font-size: 14px; resize: vertical; min-height: 100px; box-sizing: border-box;"></textarea>
         </div>
         <div id="modal-message" style="color: #dc2626; font-size: 14px; margin-bottom: 8px;"></div>
         <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px;">
-            <button id="cancelRewrite" style="padding: 8px 16px; background-color: #e5e7eb; color: #374151; border-radius: 6px; border: none; cursor: pointer; font-size: 14px;">Cancel</button>
-            <button id="acceptRewrite" style="padding: 8px 16px; background-color: #3b82f6; color: white; border-radius: 6px; border: none; cursor: pointer; font-size: 14px;">Accept</button>
+            <button id="copyRewrite" style="padding: 8px 16px; background-color: #3b82f6; color: white; border-radius: 6px; border: none; cursor: pointer; font-size: 14px;">Copy</button>
+            <button id="closeRewrite" style="padding: 8px 16px; background-color: #e5e7eb; color: #374151; border-radius: 6px; border: none; cursor: pointer; font-size: 14px;">Close</button>
         </div>
     `;
 
@@ -130,34 +130,55 @@ function createModal() {
     console.log('Modal content dimensions:', modalContent.offsetWidth, 'x', modalContent.offsetHeight);
 
     // Add event listeners
-    const acceptButton = document.getElementById('acceptRewrite');
-    const cancelButton = document.getElementById('cancelRewrite');
+    const copyButton = document.getElementById('copyRewrite');
+    const closeButton = document.getElementById('closeRewrite');
 
-    acceptButton.addEventListener('click', () => {
-        console.log('Accept button clicked');
+    copyButton.addEventListener('click', () => {
+        console.log('Copy button clicked');
         const rewrittenText = document.getElementById('rewrittenTextDisplay').value;
-        replaceText(rewrittenText);
-        hideModal();
+        navigator.clipboard.writeText(rewrittenText).then(() => {
+            console.log('Text copied to clipboard');
+            // Show a brief success message next to the label
+            const copyNotice = document.getElementById('copy-notice');
+            if (copyNotice) {
+                copyNotice.textContent = '[text copied]';
+                copyNotice.style.opacity = '1';
+                setTimeout(() => {
+                    copyNotice.style.opacity = '0';
+                }, 2000);
+            }
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            const copyNotice = document.getElementById('copy-notice');
+            if (copyNotice) {
+                copyNotice.textContent = '[copy failed]';
+                copyNotice.style.color = '#dc2626';
+                copyNotice.style.opacity = '1';
+                setTimeout(() => {
+                    copyNotice.style.opacity = '0';
+                }, 2000);
+            }
+        });
     });
 
-    cancelButton.addEventListener('click', () => {
-        console.log('Cancel button clicked');
+    closeButton.addEventListener('click', () => {
+        console.log('Close button clicked');
         hideModal();
     });
 
     // Add hover effects
-    acceptButton.addEventListener('mouseenter', () => {
-        acceptButton.style.backgroundColor = '#2563eb';
+    copyButton.addEventListener('mouseenter', () => {
+        copyButton.style.backgroundColor = '#2563eb';
     });
-    acceptButton.addEventListener('mouseleave', () => {
-        acceptButton.style.backgroundColor = '#3b82f6';
+    copyButton.addEventListener('mouseleave', () => {
+        copyButton.style.backgroundColor = '#3b82f6';
     });
 
-    cancelButton.addEventListener('mouseenter', () => {
-        cancelButton.style.backgroundColor = '#d1d5db';
+    closeButton.addEventListener('mouseenter', () => {
+        closeButton.style.backgroundColor = '#d1d5db';
     });
-    cancelButton.addEventListener('mouseleave', () => {
-        cancelButton.style.backgroundColor = '#e5e7eb';
+    closeButton.addEventListener('mouseleave', () => {
+        closeButton.style.backgroundColor = '#e5e7eb';
     });
 
     // Close modal on escape key
