@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Hero Video</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .hero-section {
+            width: 100%;
+            background-color: #000;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; 
+        }
+        #player {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .content-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 12px;
+        }
+        .timestamp-link {
+            display: inline-block;
+            text-decoration: none;
+            color: #007bff;
+            background-color: #e9f5ff;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .timestamp-link:hover {
+            background-color: #007bff;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .time-code {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hero-section">
+        <div class="video-container">
+            <div id="player"></div>
+        </div>
+    </div>
+    
+    <div class="content-container">
+        <h1>Video Sections 🎬</h1>
+        <p>Click on any section to jump to that moment in the video above.</p>
+        <ul>
+            <li>
+                <a class="timestamp-link" data-time="0">
+                    <span class="time-code">0:00</span> Introduction
+                </a>
+            </li>
+            <li>
+                <a class="timestamp-link" data-time="60">
+                    <span class="time-code">1:00</span> Section 2 Title
+                </a>
+            </li>
+            <li>
+                <a class="timestamp-link" data-time="120">
+                    <span class="time-code">2:00</span> Section 3 Title
+                </a>
+            </li>
+            <li>
+                <a class="timestamp-link" data-time="180">
+                    <span class="time-code">3:00</span> Section 4 Title
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <script>
+        // Load the IFrame Player API code asynchronously.
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        
+        var player;
+
+        // This function runs when the YouTube API is ready.
+        function onYouTubeIframeAPIReady() {
+            
+            // 1. DEFINE YOUR VIDEO URL HERE
+            const videoUrl = 'https://www.youtube.com/watch?v=gCq8OzlZycY';
+
+            // 2. The script automatically extracts the ID
+            const videoId = getVideoIdFromUrl(videoUrl);
+
+            // 3. A new player is created using the extracted ID
+            player = new YT.Player('player', {
+                height: '390',
+                width: '640',
+                videoId: videoId, // Using the dynamic videoId
+                playerVars: {
+                    'playsinline': 1
+                },
+                events: {
+                    'onReady': onPlayerReady
+                }
+            });
+        }
+
+        // The API calls this function when the video player is ready.
+        function onPlayerReady(event) {
+            const timestampLinks = document.querySelectorAll('.timestamp-link');
+            
+            timestampLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const time = this.getAttribute('data-time');
+                    player.seekTo(time, true);
+                    player.playVideo();
+                });
+            });
+        }
+
+        /**
+         * Helper function to extract the video ID from a YouTube URL.
+         * This works for standard "watch?v=" URLs.
+         * @param {string} url The full YouTube URL.
+         * @returns {string | null} The 11-character video ID or null if not found.
+         */
+        function getVideoIdFromUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                return urlObj.searchParams.get('v');
+            } catch (error) {
+                console.error("Invalid URL provided:", error);
+                return null;
+            }
+        }
+    </script>
+
+</body>
+</html>
