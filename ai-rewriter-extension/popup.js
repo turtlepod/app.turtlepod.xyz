@@ -14,6 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatgptApiKeyInput = document.getElementById('chatgptApiKeyInput');
     const geminiApiKeyGroup = document.getElementById('geminiApiKeyGroup');
     const chatgptApiKeyGroup = document.getElementById('chatgptApiKeyGroup');
+    const openaiConfigGroup = document.getElementById('openaiConfigGroup');
+    const openaiModelSelect = document.getElementById('openaiModelSelect');
+    const openaiTemperatureInput = document.getElementById('openaiTemperatureInput');
+    const openaiMaxTokensInput = document.getElementById('openaiMaxTokensInput');
     const aiDirectionInput = document.getElementById('aiDirectionInput');
     const saveSettingsButton = document.getElementById('saveSettings');
     const statusMessage = document.getElementById('statusMessage');
@@ -24,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Load settings from storage
-    chrome.storage.sync.get(['aiProvider', 'geminiApiKey', 'chatgptApiKey', 'aiDirection'], (data) => {
+    chrome.storage.sync.get(['aiProvider', 'geminiApiKey', 'chatgptApiKey', 'aiDirection', 'openaiModel', 'openaiTemperature', 'openaiMaxTokens'], (data) => {
         console.log('Storage data:', data);
         if (chrome.runtime.lastError) {
             console.error('Storage error:', chrome.runtime.lastError);
@@ -48,6 +52,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (data.aiDirection) {
             aiDirectionInput.value = data.aiDirection;
+        }
+
+        // Set OpenAI specific settings
+        if (data.openaiModel && openaiModelSelect) {
+            openaiModelSelect.value = data.openaiModel;
+        }
+        if (data.openaiTemperature && openaiTemperatureInput) {
+            openaiTemperatureInput.value = data.openaiTemperature;
+        }
+        if (data.openaiMaxTokens && openaiMaxTokensInput) {
+            openaiMaxTokensInput.value = data.openaiMaxTokens;
         }
 
         const currentProvider = aiProviderSelect.value;
@@ -79,9 +94,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (provider === 'gemini') {
             geminiApiKeyGroup.style.display = 'block';
             chatgptApiKeyGroup.style.display = 'none';
+            if (openaiConfigGroup) openaiConfigGroup.style.display = 'none';
         } else {
             geminiApiKeyGroup.style.display = 'none';
             chatgptApiKeyGroup.style.display = 'block';
+            if (openaiConfigGroup) openaiConfigGroup.style.display = 'block';
         }
     }
 
@@ -91,6 +108,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const geminiApiKey = geminiApiKeyInput.value.trim();
         const chatgptApiKey = chatgptApiKeyInput.value.trim();
         const aiDirection = aiDirectionInput.value.trim();
+
+        // Get OpenAI specific settings
+        const openaiModel = openaiModelSelect ? openaiModelSelect.value : 'gpt-4o-mini';
+        const openaiTemperature = openaiTemperatureInput ? parseFloat(openaiTemperatureInput.value) || 0.7 : 0.7;
+        const openaiMaxTokens = openaiMaxTokensInput ? parseInt(openaiMaxTokensInput.value) || 1000 : 1000;
 
         // Check if the selected provider has an API key
         const requiredApiKey = selectedProvider === 'gemini' ? geminiApiKey : chatgptApiKey;
@@ -110,6 +132,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (chatgptApiKey) {
             settings['chatgptApiKey'] = chatgptApiKey;
         }
+
+        // Save OpenAI specific settings
+        settings['openaiModel'] = openaiModel;
+        settings['openaiTemperature'] = openaiTemperature;
+        settings['openaiMaxTokens'] = openaiMaxTokens;
 
         // Only save AI direction if it's not empty
         if (aiDirection) {

@@ -53,18 +53,26 @@ async function rewriteTextWithAI(text, tabId) {
     console.log('rewriteTextWithAI called with text length:', text.length);
     console.log('Tab ID:', tabId);
 
-    chrome.storage.sync.get(['aiProvider', 'geminiApiKey', 'chatgptApiKey', 'aiDirection'], async (data) => {
+    chrome.storage.sync.get(['aiProvider', 'geminiApiKey', 'chatgptApiKey', 'aiDirection', 'openaiModel', 'openaiTemperature', 'openaiMaxTokens'], async (data) => {
         console.log('Storage data retrieved:', {
             provider: data.aiProvider,
             hasGeminiKey: !!data.geminiApiKey,
             hasChatGptKey: !!data.chatgptApiKey,
-            hasDirection: !!data.aiDirection
+            hasDirection: !!data.aiDirection,
+            openaiModel: data.openaiModel,
+            openaiTemperature: data.openaiTemperature,
+            openaiMaxTokens: data.openaiMaxTokens
         });
 
         const aiProvider = data.aiProvider || 'gemini';
         const geminiApiKey = data.geminiApiKey;
         const chatgptApiKey = data.chatgptApiKey;
         const aiDirection = data.aiDirection;
+
+        // OpenAI specific settings with defaults
+        const openaiModel = data.openaiModel || 'gpt-4o-mini';
+        const openaiTemperature = data.openaiTemperature || 0.7;
+        const openaiMaxTokens = data.openaiMaxTokens || 1000;
 
         // Get the appropriate API key for the selected provider
         const apiKey = aiProvider === 'gemini' ? geminiApiKey : chatgptApiKey;
@@ -121,31 +129,55 @@ async function rewriteTextWithAI(text, tabId) {
                     throw new Error('Unexpected Gemini API response structure');
                 }
             } else {
-                // Use ChatGPT API
+                // Use OpenAI API with latest models and enhanced configuration
                 const payload = {
-                    model: "gpt-3.5-turbo",
+                    model: openaiModel,
                     messages: [
                         {
                             role: "user",
                             content: prompt
                         }
                     ],
-                    max_tokens: 1000,
-                    temperature: 0.7
+                    max_tokens: openaiMaxTokens,
+                    temperature: openaiTemperature,
+                    // Add modern API features
+                    response_format: { type: "text" },
+                    // Enable function calling for future enhancements
+                    tools: null,
+                    tool_choice: null
                 };
+
+                console.log('OpenAI API payload:', payload);
 
                 const response = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
+                        'Authorization': `Bearer ${apiKey}`,
+                        'OpenAI-Beta': 'assistants=v2' // Enable latest features
                     },
                     body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(`ChatGPT API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
+                    let errorMessage = `OpenAI API error: ${response.status}`;
+
+                    if (errorData.error) {
+                        if (errorData.error.message) {
+                            errorMessage += ` - ${errorData.error.message}`;
+                        }
+                        if (errorData.error.type) {
+                            errorMessage += ` (${errorData.error.type})`;
+                        }
+                        if (errorData.error.code) {
+                            errorMessage += ` [Code: ${errorData.error.code}]`;
+                        }
+                    } else {
+                        errorMessage += ` - ${response.statusText}`;
+                    }
+
+                    throw new Error(errorMessage);
                 }
 
                 const result = await response.json();
@@ -153,8 +185,18 @@ async function rewriteTextWithAI(text, tabId) {
                 if (result.choices && result.choices.length > 0 &&
                     result.choices[0].message && result.choices[0].message.content) {
                     rewrittenText = result.choices[0].message.content;
+
+                    // Log usage information if available
+                    if (result.usage) {
+                        console.log('OpenAI API usage:', {
+                            prompt_tokens: result.usage.prompt_tokens,
+                            completion_tokens: result.usage.completion_tokens,
+                            total_tokens: result.usage.total_tokens,
+                            model: result.model
+                        });
+                    }
                 } else {
-                    throw new Error('Unexpected ChatGPT API response structure');
+                    throw new Error('Unexpected OpenAI API response structure');
                 }
             }
 
@@ -174,9 +216,23 @@ async function rewriteTextWithAI(text, tabId) {
             });
         } catch (error) {
             console.error('Error rewriting text with AI:', error);
+
+            // Provide more helpful error messages
+            let userMessage = `Error rewriting text: ${error.message}`;
+
+            if (error.message.includes('401')) {
+                userMessage = 'Invalid API key. Please check your OpenAI API key in the extension settings.';
+            } else if (error.message.includes('429')) {
+                userMessage = 'Rate limit exceeded. Please wait a moment and try again.';
+            } else if (error.message.includes('500')) {
+                userMessage = 'OpenAI service temporarily unavailable. Please try again later.';
+            } else if (error.message.includes('insufficient_quota')) {
+                userMessage = 'API quota exceeded. Please check your OpenAI account billing.';
+            }
+
             chrome.tabs.sendMessage(tabId, {
                 action: 'displayMessage',
-                message: `Error rewriting text: ${error.message}`
+                message: userMessage
             });
         }
     });
