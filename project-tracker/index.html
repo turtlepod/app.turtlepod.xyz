@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Time Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .readonly-input {
+            background-color: #e5e7eb;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-4xl">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Project Time Tracker</h1>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full table-auto">
+                <thead>
+                    <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal rounded-t-lg">
+                        <th class="py-3 px-6 text-left">Project Name</th>
+                        <th class="py-3 px-6 text-center">Allocated</th>
+                        <th class="py-3 px-6 text-center">Logged</th>
+                        <th class="py-3 px-6 text-center">Remaining</th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-600 text-sm font-light" id="project-table-body">
+                    <!-- Project rows will be populated here by JavaScript -->
+                    <tr class="border-b border-gray-200 hover:bg-gray-100">
+                        <td class="py-3 px-6 text-left whitespace-nowrap font-medium">
+                            <input type="text" class="w-full p-2 border border-gray-300 rounded-md" data-project="projectA" data-type="name" placeholder="Project A">
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="text" placeholder="HH:MM" class="w-24 p-2 border border-gray-300 rounded-md text-center" data-project="projectA" data-type="allocated">
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="text" placeholder="HH:MM" class="w-24 p-2 border border-gray-300 rounded-md text-center" data-project="projectA" data-type="logged">
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="text" class="w-24 p-2 border border-gray-300 rounded-md text-center readonly-input" data-project="projectA" data-type="remaining" readonly>
+                        </td>
+                    </tr>
+                    <tr class="border-b border-gray-200 hover:bg-gray-100">
+                        <td class="py-3 px-6 text-left whitespace-nowrap font-medium">
+                            <input type="text" class="w-full p-2 border border-gray-300 rounded-md" data-project="projectB" data-type="name" placeholder="Project B">
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="text" placeholder="HH:MM" class="w-24 p-2 border border-gray-300 rounded-md text-center" data-project="projectB" data-type="allocated">
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="text" placeholder="HH:MM" class="w-24 p-2 border border-gray-300 rounded-md text-center" data-project="projectB" data-type="logged">
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="text" class="w-24 p-2 border border-gray-300 rounded-md text-center readonly-input" data-project="projectB" data-type="remaining" readonly>
+                        </td>
+                    </tr>
+                    <tr class="border-b border-gray-200 hover:bg-gray-100">
+                        <td class="py-3 px-6 text-left whitespace-nowrap font-medium">
+                            <input type="text" class="w-full p-2 border border-gray-300 rounded-md" data-project="projectC" data-type="name" placeholder="Project C">
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="text" placeholder="HH:MM" class="w-24 p-2 border border-gray-300 rounded-md text-center" data-project="projectC" data-type="allocated">
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="text" placeholder="HH:MM" class="w-24 p-2 border border-gray-300 rounded-md text-center" data-project="projectC" data-type="logged">
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="text" class="w-24 p-2 border border-gray-300 rounded-md text-center readonly-input" data-project="projectC" data-type="remaining" readonly>
+                        </td>
+                    </tr>
+                    <tr class="border-b border-gray-200 hover:bg-gray-100">
+                        <td class="py-3 px-6 text-left whitespace-nowrap font-medium">
+                            <input type="text" class="w-full p-2 border border-gray-300 rounded-md" data-project="projectD" data-type="name" placeholder="Project D">
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="text" placeholder="HH:MM" class="w-24 p-2 border border-gray-300 rounded-md text-center" data-project="projectD" data-type="allocated">
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="text" placeholder="HH:MM" class="w-24 p-2 border border-gray-300 rounded-md text-center" data-project="projectD" data-type="logged">
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="text" class="w-24 p-2 border border-gray-300 rounded-md text-center readonly-input" data-project="projectD" data-type="remaining" readonly>
+                        </td>
+                    </tr>
+                    <tr class="border-b border-gray-200 hover:bg-gray-100">
+                        <td class="py-3 px-6 text-left whitespace-nowrap font-medium">
+                            <input type="text" class="w-full p-2 border border-gray-300 rounded-md" data-project="projectE" data-type="name" placeholder="Project E">
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="text" placeholder="HH:MM" class="w-24 p-2 border border-gray-300 rounded-md text-center" data-project="projectE" data-type="allocated">
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="text" placeholder="HH:MM" class="w-24 p-2 border border-gray-300 rounded-md text-center" data-project="projectE" data-type="logged">
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="text" class="w-24 p-2 border border-gray-300 rounded-md text-center readonly-input" data-project="projectE" data-type="remaining" readonly>
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="bg-gray-300 text-gray-800 font-extrabold text-sm leading-normal">
+                        <td class="py-3 px-6 text-left">Totals</td>
+                        <td class="py-3 px-6 text-center" id="total-allocated">00:00</td>
+                        <td class="py-3 px-6 text-center" id="total-logged">00:00</td>
+                        <td class="py-3 px-6 text-center" id="total-remaining">00:00</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const projects = ['projectA', 'projectB', 'projectC', 'projectD', 'projectE'];
+            const localstorageKey = 'projectData';
+
+            // Helper function to parse "HH:MM" string to a decimal value
+            const parseTime = (timeString) => {
+                if (!timeString || timeString.trim() === '') return 0;
+                const parts = timeString.split(':');
+                if (parts.length === 2) {
+                    const hours = parseInt(parts[0], 10) || 0;
+                    const minutes = parseInt(parts[1], 10) || 0;
+                    return hours + (minutes / 60);
+                }
+                return 0;
+            };
+
+            // Helper function to format a decimal value back to "HH:MM"
+            const formatTime = (timeDecimal) => {
+                const hours = Math.floor(timeDecimal);
+                const minutes = Math.round((timeDecimal - hours) * 60);
+                const formattedHours = String(hours).padStart(2, '0');
+                const formattedMinutes = String(minutes).padStart(2, '0');
+                return `${formattedHours}:${formattedMinutes}`;
+            };
+
+            // Get total elements
+            const totalAllocatedEl = document.getElementById('total-allocated');
+            const totalLoggedEl = document.getElementById('total-logged');
+            const totalRemainingEl = document.getElementById('total-remaining');
+
+            const updateTotals = () => {
+                let totalAllocatedDecimal = 0;
+                let totalLoggedDecimal = 0;
+                
+                projects.forEach(project => {
+                    const allocatedInput = document.querySelector(`input[data-project="${project}"][data-type="allocated"]`);
+                    const loggedInput = document.querySelector(`input[data-project="${project}"][data-type="logged"]`);
+                    const remainingInput = document.querySelector(`input[data-project="${project}"][data-type="remaining"]`);
+
+                    const allocatedDecimal = parseTime(allocatedInput.value);
+                    const loggedDecimal = parseTime(loggedInput.value);
+                    const remainingDecimal = allocatedDecimal - loggedDecimal;
+
+                    remainingInput.value = formatTime(remainingDecimal);
+                    
+                    totalAllocatedDecimal += allocatedDecimal;
+                    totalLoggedDecimal += loggedDecimal;
+                });
+
+                const totalRemainingDecimal = totalAllocatedDecimal - totalLoggedDecimal;
+
+                totalAllocatedEl.textContent = formatTime(totalAllocatedDecimal);
+                totalLoggedEl.textContent = formatTime(totalLoggedDecimal);
+                totalRemainingEl.textContent = formatTime(totalRemainingDecimal);
+            };
+
+            const saveData = () => {
+                const data = {};
+                projects.forEach(project => {
+                    const nameInput = document.querySelector(`input[data-project="${project}"][data-type="name"]`);
+                    const allocatedInput = document.querySelector(`input[data-project="${project}"][data-type="allocated"]`);
+                    const loggedInput = document.querySelector(`input[data-project="${project}"][data-type="logged"]`);
+                    data[project] = {
+                        name: nameInput.value,
+                        allocated: allocatedInput.value,
+                        logged: loggedInput.value
+                    };
+                });
+                localStorage.setItem(localstorageKey, JSON.stringify(data));
+            };
+
+            const loadData = () => {
+                const storedData = localStorage.getItem(localstorageKey);
+                if (storedData) {
+                    const data = JSON.parse(storedData);
+                    projects.forEach(project => {
+                        if (data[project]) {
+                            document.querySelector(`input[data-project="${project}"][data-type="name"]`).value = data[project].name;
+                            document.querySelector(`input[data-project="${project}"][data-type="allocated"]`).value = data[project].allocated;
+                            document.querySelector(`input[data-project="${project}"][data-type="logged"]`).value = data[project].logged;
+                        }
+                    });
+                }
+            };
+
+            // Initial load and update
+            loadData();
+            updateTotals();
+
+            // Add event listeners to all relevant input fields
+            document.querySelectorAll('input[data-type]').forEach(input => {
+                input.addEventListener('input', () => {
+                    updateTotals();
+                    saveData();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
