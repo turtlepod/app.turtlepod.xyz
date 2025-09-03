@@ -120,16 +120,31 @@
             const projects = ['projectA', 'projectB', 'projectC', 'projectD', 'projectE'];
             const localstorageKey = 'projectData';
 
-            // Helper function to parse "HH:MM" string to a decimal value
+            // Helper function to parse time string (HH:MM or Hh Mm format) to a decimal value
             const parseTime = (timeString) => {
                 if (!timeString || timeString.trim() === '') return 0;
-                const parts = timeString.split(':');
-                if (parts.length === 2) {
+
+                // Handle HH:MM format
+                if (timeString.includes(':')) {
+                    const parts = timeString.split(':');
                     const hours = parseInt(parts[0], 10) || 0;
                     const minutes = parseInt(parts[1], 10) || 0;
                     return hours + (minutes / 60);
                 }
-                return 0;
+
+                // Handle Hh Mm format
+                let totalHours = 0;
+                const hoursMatch = timeString.match(/(\d+)\s*h/);
+                const minutesMatch = timeString.match(/(\d+)\s*m/);
+
+                if (hoursMatch) {
+                    totalHours += parseInt(hoursMatch[1], 10);
+                }
+                if (minutesMatch) {
+                    totalHours += (parseInt(minutesMatch[1], 10) / 60);
+                }
+                
+                return totalHours;
             };
 
             // Helper function to format a decimal value back to "HH:MM"
