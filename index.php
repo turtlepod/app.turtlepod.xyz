@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>app.turlepod.xyz</title>
+    <title>app.turtlepod.xyz</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
     <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md md:max-w-lg lg:max-w-xl text-center">
-        <h1 class="text-4xl font-bold text-gray-800 mb-4 rounded-md">app.turlepod.xyz</h1>
+        <h1 class="text-4xl font-bold text-gray-800 mb-4 rounded-md">app.turtlepod.xyz</h1>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <?php
